@@ -1,0 +1,1628 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Block Runner — Покращена Версія</title>
+  <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon.png">
+<meta name="theme-color" content="#000000">
+  <style>
+    :root{--bg:#000;--panel:#111;--accent:#0f0;--muted:#999}
+    html,body{height:100%;margin:0;background:var(--bg);color:#fff;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;user-select:none;overflow:hidden}
+    .screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column}
+    h1{margin:8px 0;font-size:28px}
+    p{margin:6px 0;color:var(--muted)}
+    button{background:var(--accent);color:#000;border:none;padding:10px 18px;border-radius:10px;font-size:16px;cursor:pointer}
+    canvas{display:block;background:#000;width:100%;height:100%}
+    #ui{position:fixed;top:10px;left:0;width:100%;text-align:center;font-size:16px;z-index:5}
+    #ui span{background:rgba(0,0,0,0.3);padding:6px 10px;border-radius:8px;margin:0 6px}
+    /* Стилі для контролів та кнопки паузи */
+    #ui .controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; }
+    #ui .controls button { padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.1); color: #fff; font-size: 16px; }
+    /* Стиль для модального вікна паузи */
+    .pause-modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); display: none; align-items: center; justify-content: center; z-index: 55; }
+    .pause-content { background: var(--panel); border-radius: 12px; padding: 30px; text-align: center; box-shadow: 0 0 20px rgba(0, 255, 0, 0.2); }
+    .pause-content h2 { color: var(--accent); margin-top: 0; }
+    .small{font-size:13px;color:var(--muted)}
+    .buttons{display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;justify-content:center;}
+    /* Console styles */
+    .console-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:flex-end;justify-content:center;padding:20px;z-index:50}
+    .console{background:#0b0b0b;border:1px solid #222;border-radius:12px;width:100%;max-width:820px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden}
+    .console-header{padding:10px 12px;border-bottom:1px solid #111;display:flex;align-items:center;justify-content:space-between}
+    .console-body{padding:12px;flex:1;overflow:auto;font-family:monospace;font-size:13px;color:#dcdcdc;background:linear-gradient(180deg,#040404,transparent)}
+    .console-input{display:flex;padding:10px;border-top:1px solid #111;background:#050505}
+    .console-input input{flex:1;padding:10px;border-radius:8px;border:none;background:#0a0a0a;color:#fff;font-family:monospace;font-size:14px}
+    /* Стиль для кнопки ← (Назад), щоб вона виглядала як контрольна кнопка */
+    .console-input button{
+        margin-left:8px;
+        padding:8px 12px;
+        border-radius:8px;
+        border:none;
+        background:var(--accent);
+        color:#000;
+        cursor:pointer; 
+        line-height: 1; 
+        transition: opacity 0.1s;
+    }
+    .console-input button:disabled { opacity: 0.5; cursor: default; }
+    
+    /* Стилі для модального вікна та позиціонування кнопки */
+    .modal{
+        position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+        background:#0b0b0b;border-radius:10px;
+        padding:12px; 
+        width:90%;max-width:900px;
+        max-height:80vh; /* Визначає максимальну висоту модального вікна */
+        overflow:hidden; 
+        border:1px solid #222;z-index:60;display:none;
+        padding-top: 40px; 
+    }
+    .modal-header {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 8px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #0b0b0b;
+        border-bottom: 1px solid #222;
+        z-index: 61; 
+    }
+    .modal pre{
+        white-space:pre-wrap;word-break:break-word;
+        background:#060606;
+        padding:12px;border-radius:8px;
+        font-family:monospace;color:#eaeaea;font-size:12px;
+        height: 100%; /* Забезпечує, що pre займає всю доступну висоту */
+        overflow-y: auto; /* Вмикає прокрутку, якщо вміст більший за висоту */
+    }
+    .modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px; padding: 0 12px 12px 12px;} 
+    .tag{font-size:12px;padding:6px 10px;border-radius:999px;cursor: pointer;}
+    .small-muted{font-size:12px;color:var(--muted)}
+    
+    /* Стиль для білої кнопки закриття */
+    #closeCodeModal, #closeHelpModal {
+      background: white; 
+      color: #000; 
+      border: 1px solid #000;
+      font-weight: bold;
+    }
+
+    /* Стиль для кнопок в modal-actions (якщо вони залишилися) */
+    .modal-actions .tag {
+        background: rgba(255,255,255,0.03);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.03);
+    }
+    
+    /* Додатковий стиль для модального вікна Довідки */
+    #helpModal .help-item { margin-bottom: 15px; border-left: 3px solid var(--accent); padding-left: 10px; }
+    #helpModal .help-item strong { color: var(--accent); }
+    
+    /* ВИПРАВЛЕНО: Додано фіксовану висоту для прокручування вмісту коду */
+    #codeModalContent { 
+      height: 100%; 
+      overflow-y: auto; /* Насправді це дублюється в .modal pre, але забезпечує безпеку */
+      padding: 12px; /* Додаємо внутрішній відступ, щоб вміст не прилипав до країв */
+    }
+    
+    /* Встановлюємо висоту для батьківського контейнера коду в modal-body */
+    #codeModal {
+        display: flex; /* Перетворюємо на flex-контейнер для кращого керування висотою */
+        flex-direction: column; 
+    }
+    #codeModalContent {
+        flex-grow: 1; /* Дозволяє контенту займати весь доступний простір */
+        min-height: 0; /* Вирішує проблеми з flex */
+        padding-top: 0; /* Прибираємо конфлікт з padding-top модалу */
+    }
+
+    /* Анімації для нових елементів */
+    @keyframes spawn {
+        0% { transform: scale(0); opacity: 0; }
+        70% { transform: scale(1.1); opacity: 1; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .bonus {
+        animation: spawn 0.3s ease-out;
+    }
+
+    .enemy {
+        animation: spawn 0.4s ease-out;
+    }
+
+    /* Стилі для рівнів складності */
+    .level-indicator {
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        z-index: 5;
+    }
+
+    /* Стиль для кнопки бота */
+    .bot-btn {
+        background: #ff4444;
+        color: white;
+    }
+    .bot-btn.active {
+        background: #44ff44;
+        color: black;
+    }
+
+    /* Стилі для модального вікна налаштувань */
+    .settings-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 70;
+    }
+    .settings-content {
+        background: var(--panel);
+        border-radius: 12px;
+        padding: 20px;
+        width: 90%;
+        max-width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .settings-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 15px 0;
+        padding: 10px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 8px;
+    }
+    .settings-item label {
+        flex: 1;
+        margin-right: 10px;
+    }
+    .toggle-switch {
+        position: relative;
+        width: 40px;
+        height: 20px;
+    }
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #333;
+        transition: .4s;
+        border-radius: 20px;
+    }
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+    input:checked + .toggle-slider {
+        background-color: var(--accent);
+    }
+    input:checked + .toggle-slider:before {
+        transform: translateX(130px);
+    }
+    .language-select {
+        background: #333;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .repo-btn {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: var(--accent);
+    color: #000;
+    padding: 8px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+}
+.repo-btn:hover {
+    opacity: 0.8;
+}
+  </style>
+</head>
+<body>
+  <a href="https://github.com/redel1290/APK/tree/main" target="_blank">
+    <button id="repoBtn" class="repo-btn">APK версія гри</button>
+</a>
+
+  <!-- Аудіо елементи -->
+  <audio id="menuMusic" loop>
+    <source src="music/menu.mp3" type="audio/mpeg">
+    Ваш браузер не підтримує аудіо елемент.
+  </audio>
+  
+  <audio id="gameMusic" loop>
+    <source src="music/game.mp3" type="audio/mpeg">
+    Ваш браузер не підтримує аудіо елемент.
+  </audio>
+
+  <div id="menu" class="screen">
+    <h1>🟦 Block Runner</h1>
+    <p>Уникай червоних ворогів</p>  
+    <div class="buttons">
+      <button id="startBtn">▶ Почати</button>
+      <button id="howBtn">❔ Інструкція</button>
+      <button id="botBtn" class="bot-btn">🤖 Бот: ВИМК</button>
+      <button id="settingsBtn">⚙️ Налаштування</button>
+      <button id="resetBtn">🗑️ Скинути прогрес</button>
+    </div>
+    <p class="small">Рекорд: <strong id="bestMenu">0</strong> | Очки: <strong id="scoreMenu">0</strong></p>
+  </div>
+
+  <div id="gameScreen" class="screen" style="display:none">
+    <canvas id="game"></canvas>
+    <div id="ui">
+      <div class="controls">
+        <span>Час: <span id="time">0</span></span>
+        <span>Рекорд: <span id="best">0</span></span>
+        <span>Очки: <span id="score">0</span></span>
+        <button id="pauseBtn">⏸️</button>
+      </div>
+    </div>
+    <div class="level-indicator">Рівень: <span id="level">1</span></div>
+  </div>
+
+  <div id="gameOver" class="screen" style="display:none;">
+    <h1>💀 Гру закінчено!</h1>
+    <p>Ваш результат: <strong id="scoreOut">0</strong> с</p>
+    <p>Очки: <strong id="finalScore">0</strong></p>
+    <p class="small">Рекорд: <strong id="bestOut">0</strong> с</p>
+    <div class="buttons">
+      <button id="retryBtn">🔁 Спробувати ще раз</button>
+      <button id="menuBtn">🏠 Меню</button>
+    </div>
+  </div>
+
+  <!-- Модальне вікно налаштувань -->
+  <div id="settingsModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-content" role="dialog" aria-modal="true" aria-label="Налаштування гри">
+      <h2 style="text-align: center; margin-top: 0; color: var(--accent);">⚙️ Налаштування</h2>
+      
+      <div class="settings-item">
+        <label for="languageSelect">🌐 Мова:</label>
+        <select id="languageSelect" class="language-select">
+          <option value="uk">Українська</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      
+      <div class="settings-item">
+        <label for="menuMusicToggle">🎵 Музика в меню</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="menuMusicToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      
+      <div class="settings-item">
+        <label for="gameMusicToggle">🎵 Музика в грі</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="gameMusicToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      
+      <div class="settings-item">
+        <label for="vibrationToggle">📳 Вібрація</label>
+        <label class="toggle-switch">
+          <input type="checkbox" id="vibrationToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      
+      <div class="buttons" style="margin-top: 20px;">
+        <button id="closeSettingsBtn">✅ Готово</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pauseModal" class="pause-modal" aria-hidden="true">
+    <div class="pause-content" role="dialog" aria-modal="true" aria-label="Гра на паузі">
+      <h2>⏸️ Пауза</h2>
+      <p>Гра призупинена.</p>
+      <div class="buttons">
+        <button id="resumeBtn">▶ Продовжити</button>
+        <button id="pauseMenuBtn">🏠 У меню</button>
+      </div>
+      <p class="small" style="margin-top: 15px;">Натисніть Esc або кнопку "Продовжити"</p>
+    </div>
+  </div>
+
+  <div id="consoleOverlay" class="console-overlay" aria-hidden="true">
+    <div class="console" role="dialog" aria-label="Командна строка гри">
+      <div class="console-header">
+        <div><span class="tag">Game Console</span> <span class="small-muted" id="consoleStatus">system ready</span></div>
+        <div>
+          <button id="closeConsoleBtn" class="tag" style="cursor:pointer">Закрити</button>
+        </div>
+      </div>
+      <div id="consoleBody" class="console-body"></div>
+      <div class="console-input">
+        <button id="consoleBackBtn" title="Назад / Закрити консоль" style="background: #333; color: #fff; margin-right: 8px;">←</button>
+        <input id="consoleInput" placeholder="Введіть команду, наприклад /help" />
+        <button id="consoleSend">Виконати</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="codeModal" class="modal" role="dialog" aria-label="Код гри">
+    <div class="modal-header">
+      <strong>Повний код гри (Пароль прийнято)</strong>
+      <div><button id="closeCodeModal" class="tag">Закрити</button></div> 
+    </div>
+
+    <div id="codeModalContent">
+      <pre id="codePre"></pre>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal" role="dialog" aria-label="Довідка по командній строці" style="padding-top: 50px;">
+    <div class="modal-header">
+        <h2 style="margin:0; color:var(--accent); font-size: 16px;">Довідка по Консолі</h2>
+        <div><button id="closeHelpModal" class="tag">Закрити</button></div>
+    </div>
+    <div style="padding: 12px; height: 100%; overflow-y: auto;">
+        <div class="help-item">
+            <strong>/code</strong>
+            <p>Показує повний вихідний код гри.</p>
+        </div>
+        <div class="help-item">
+            <strong>/god on | /god off</strong>
+            <p>Вмикає або вимикає режим непереможності (God Mode). Увімкнений режим дозволяє гравцю не помирати від зіткнень із червоними ворогами.</p>
+        </div>
+        <div class="help-item">
+            <strong>/score</strong>
+            <p>Показує поточний рахунок.</p>
+        </div>
+        <div class="help-item">
+            <strong>/time</strong>
+            <p>Показує час гри.</p>
+        </div>
+        <div class="help-item">
+            <strong>/enemies</strong>
+            <p>Показує кількість активних ворогів.</p>
+        </div>
+        <div class="help-item">
+            <strong>/clear</strong>
+            <p>Очищає консоль.</p>
+        </div>
+        <div class="help-item">
+            <strong>/help</strong>
+            <p>Виводить це довідкове вікно (зникне через 5 секунд).</p>
+        </div>
+        <div class="help-item">
+            <strong>/bb on | /bb off</strong>
+            <p>Вмикає/вимикає бота-охоронця, який літає навколо гравця та знищує ворогів.</p>
+        </div>
+    </div>
+  </div>
+
+<script>
+    (() => {
+      /* ------------------ Елементи DOM ------------------ */
+      const menu = document.getElementById('menu');
+      const gameScreen = document.getElementById('gameScreen');
+      const gameOver = document.getElementById('gameOver');
+      const startBtn = document.getElementById('startBtn');
+      const howBtn = document.getElementById('howBtn');
+      const botBtn = document.getElementById('botBtn');
+      const settingsBtn = document.getElementById('settingsBtn');
+      const retryBtn = document.getElementById('retryBtn');
+      const menuBtn = document.getElementById('menuBtn');
+      const resetBtn = document.getElementById('resetBtn');
+      const pauseModal = document.getElementById('pauseModal');
+      const pauseBtn = document.getElementById('pauseBtn');
+      const resumeBtn = document.getElementById('resumeBtn');
+      const pauseMenuBtn = document.getElementById('pauseMenuBtn');
+      const menuMusic = document.getElementById('menuMusic');
+      const gameMusic = document.getElementById('gameMusic');
+      const settingsModal = document.getElementById('settingsModal');
+      const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+      const languageSelect = document.getElementById('languageSelect');
+      const menuMusicToggle = document.getElementById('menuMusicToggle');
+      const gameMusicToggle = document.getElementById('gameMusicToggle');
+      const vibrationToggle = document.getElementById('vibrationToggle');
+
+      // Лічильники - зберігаємо посилання на елементи
+      let bestMenuEl = document.getElementById('bestMenu');
+      let scoreMenuEl = document.getElementById('scoreMenu');
+      let timeEl = document.getElementById('time');
+      let bestEl = document.getElementById('best');
+      let scoreEl = document.getElementById('score');
+      let scoreOut = document.getElementById('scoreOut');
+      let finalScore = document.getElementById('finalScore');
+      let bestOut = document.getElementById('bestOut');
+      let levelEl = document.getElementById('level');
+
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      
+      // Елементи консолі та модальних вікон
+      const consoleOverlay = document.getElementById('consoleOverlay');
+      const consoleBody = document.getElementById('consoleBody');
+      const consoleInput = document.getElementById('consoleInput');
+      const consoleSend = document.getElementById('consoleSend');
+      const closeConsoleBtn = document.getElementById('closeConsoleBtn');
+      const consoleBackBtn = document.getElementById('consoleBackBtn'); 
+      const consoleStatus = document.getElementById('consoleStatus');
+      const codeModal = document.getElementById('codeModal');
+      const codePre = document.getElementById('codePre');
+      const closeCodeModal = document.getElementById('closeCodeModal'); 
+      const helpModal = document.getElementById('helpModal'); 
+      const closeHelpModal = document.getElementById('closeHelpModal'); 
+
+      /* ------------------ Змінні та стан гри ------------------ */
+      let width = innerWidth, height = innerHeight;
+      let animationId = null;
+      let timeTimer = null;
+      let spawnTimer = null;
+      let bonusTimer = null;
+      let powerupTimer = null;
+      let timeSec = 0;
+      let enemies = [];
+      let bonuses = [];
+      let aiBot = { x: 100, y: 100, size: 30, speed: 1 };
+      let bodyguardBot = { x: 0, y: 0, size: 25, speed: 2, angle: 0, active: false };
+      let keys = {};
+      let best = parseInt(localStorage.getItem('bestTime')) || 0;
+      let bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
+      let particles = [];
+      let stars = [];
+      let score = 0;
+      let level = 1;
+      let enemySpawnRate = 1000;
+      let botEnabled = false;
+      let menuMusicEnabled = true;
+      let gameMusicEnabled = true;
+      let vibrationEnabled = true;
+      let currentLanguage = 'uk';
+      
+      // Прапорці для автоматичного відтворення
+      let musicAutoplayAttempted = false;
+      
+      // Словники для перекладів
+      const translations = {
+        uk: {
+          title: "Block Runner — Покращена Версія",
+          gameTitle: "🟦 Block Runner",
+          gameSubtitle: "Уникай червоних ворогів",
+          startBtn: "▶ Почати",
+          howBtn: "❔ Інструкція",
+          botBtnOn: "🤖 Бот: УВІМК",
+          botBtnOff: "🤖 Бот: ВИМК",
+          settingsBtn: "⚙️ Налаштування",
+          resetBtn: "🗑️ Скинути прогрес",
+          bestRecord: "Рекорд",
+          points: "Очки",
+          time: "Час",
+          level: "Рівень",
+          gameOver: "💀 Гру закінчено!",
+          yourScore: "Ваш результат",
+          seconds: "с",
+          retryBtn: "🔁 Спробувати ще раз",
+          menuBtn: "🏠 Меню",
+          pause: "⏸️ Пауза",
+          gamePaused: "Гра призупинена.",
+          resumeBtn: "▶ Продовжити",
+          pauseMenuBtn: "🏠 У меню",
+          pressEsc: "Натисніть Esc або кнопку 'Продовжити'",
+          settingsTitle: "⚙️ Налаштування",
+          language: "🌐 Мова:",
+          menuMusic: "🎵 Музика в меню",
+          gameMusic: "🎵 Музика в грі",
+          vibration: "📳 Вібрація",
+          doneBtn: "✅ Готово",
+          consolePlaceholder: "Введіть команду, наприклад /help",
+          consoleSend: "Виконати",
+          close: "Закрити"
+        },
+        en: {
+          title: "Block Runner — Enhanced Version",
+          gameTitle: "🟦 Block Runner",
+          gameSubtitle: "Avoid red enemies",
+          startBtn: "▶ Start",
+          howBtn: "❔ Instructions",
+          botBtnOn: "🤖 Bot: ON",
+          botBtnOff: "🤖 Bot: OFF",
+          settingsBtn: "⚙️ Settings",
+          resetBtn: "🗑️ Reset Progress",
+          bestRecord: "Best",
+          points: "Points",
+          time: "Time",
+          level: "Level",
+          gameOver: "💀 Game Over!",
+          yourScore: "Your score",
+          seconds: "s",
+          retryBtn: "🔁 Try Again",
+          menuBtn: "🏠 Menu",
+          pause: "⏸️ Pause",
+          gamePaused: "Game paused.",
+          resumeBtn: "▶ Resume",
+          pauseMenuBtn: "🏠 To Menu",
+          pressEsc: "Press Esc or 'Resume' button",
+          settingsTitle: "⚙️ Settings",
+          language: "🌐 Language:",
+          menuMusic: "🎵 Menu Music",
+          gameMusic: "🎵 Game Music",
+          vibration: "📳 Vibration",
+          doneBtn: "✅ Done",
+          consolePlaceholder: "Enter command, e.g. /help",
+          consoleSend: "Execute",
+          close: "Close"
+        }
+      };
+      
+      // Змінні для ефектів
+      let activeEffects = {
+        slowMotion: { active: false, endTime: 0 },
+        shield: { active: false, endTime: 0 },
+        speedBoost: { active: false, endTime: 0 }
+      };
+      
+      let joystick = {x:0, y:0, dx:0, dy:0, active:false};
+      let player = {x:0,y:0,size:30,speed:4};
+      let isGameOverAnim = false;
+      let isGameActive = false;
+      let isGamePaused = false;
+      let godMode = false;
+      let helpTimeoutId = null;
+      
+      const SECURE_PASSWORD = 'kill.app';
+
+      /* ------------------ Функції оновлення лічильників ------------------ */
+      function updateCounters() {
+        if (timeEl) timeEl.textContent = timeSec;
+        if (bestEl) bestEl.textContent = best;
+        if (scoreEl) scoreEl.textContent = score;
+        if (levelEl) levelEl.textContent = level;
+        if (bestMenuEl) bestMenuEl.textContent = best;
+        if (scoreMenuEl) scoreMenuEl.textContent = bestScore;
+      }
+
+      function updateGameOverCounters() {
+        if (scoreOut) scoreOut.textContent = timeSec;
+        if (finalScore) finalScore.textContent = score;
+        if (bestOut) bestOut.textContent = best;
+      }
+
+      /* ------------------ Функції перекладу ------------------ */
+      function updateLanguage() {
+        const t = translations[currentLanguage];
+        
+        // Оновлення тексту в DOM
+        document.title = t.title;
+        document.querySelector('#menu h1').textContent = t.gameTitle;
+        document.querySelector('#menu p').textContent = t.gameSubtitle;
+        startBtn.textContent = t.startBtn;
+        howBtn.textContent = t.howBtn;
+        settingsBtn.textContent = t.settingsBtn;
+        resetBtn.textContent = t.resetBtn;
+        
+        // Оновлення тексту в UI гри без перезапису лічильників
+        const controls = document.querySelector('#ui .controls');
+        if (controls) {
+          const timeSpan = controls.querySelector('span:nth-child(1)');
+          const bestSpan = controls.querySelector('span:nth-child(2)');
+          const scoreSpan = controls.querySelector('span:nth-child(3)');
+          
+          if (timeSpan) timeSpan.innerHTML = `${t.time}: <span id="time">${timeSec}</span>`;
+          if (bestSpan) bestSpan.innerHTML = `${t.bestRecord}: <span id="best">${best}</span>`;
+          if (scoreSpan) scoreSpan.innerHTML = `${t.points}: <span id="score">${score}</span>`;
+          
+          // Оновлюємо посилання на елементи
+          timeEl = document.getElementById('time');
+          bestEl = document.getElementById('best');
+          scoreEl = document.getElementById('score');
+        }
+        
+        // Оновлення індикатора рівня
+        const levelIndicator = document.querySelector('.level-indicator');
+        if (levelIndicator) {
+          levelIndicator.innerHTML = `${t.level}: <span id="level">${level}</span>`;
+          levelEl = document.getElementById('level');
+        }
+        
+        // Оновлення меню
+        const menuStats = document.querySelector('#menu .small');
+        if (menuStats) {
+          menuStats.innerHTML = `${t.bestRecord}: <strong id="bestMenu">${best}</strong> | ${t.points}: <strong id="scoreMenu">${bestScore}</strong>`;
+          bestMenuEl = document.getElementById('bestMenu');
+          scoreMenuEl = document.getElementById('scoreMenu');
+        }
+        
+        // Оновлення game over екрану
+        document.querySelector('#gameOver h1').textContent = t.gameOver;
+        const gameOverScore = document.querySelector('#gameOver p:nth-child(2)');
+        const gameOverPoints = document.querySelector('#gameOver p:nth-child(3)');
+        const gameOverBest = document.querySelector('#gameOver .small');
+        
+        if (gameOverScore) gameOverScore.innerHTML = `${t.yourScore}: <strong id="scoreOut">${timeSec}</strong> ${t.seconds}`;
+        if (gameOverPoints) gameOverPoints.innerHTML = `${t.points}: <strong id="finalScore">${score}</strong>`;
+        if (gameOverBest) gameOverBest.innerHTML = `${t.bestRecord}: <strong id="bestOut">${best}</strong> ${t.seconds}`;
+        
+        scoreOut = document.getElementById('scoreOut');
+        finalScore = document.getElementById('finalScore');
+        bestOut = document.getElementById('bestOut');
+        
+        retryBtn.textContent = t.retryBtn;
+        menuBtn.textContent = t.menuBtn;
+        
+        document.querySelector('.pause-content h2').textContent = t.pause;
+        document.querySelector('.pause-content p').textContent = t.gamePaused;
+        resumeBtn.textContent = t.resumeBtn;
+        pauseMenuBtn.textContent = t.pauseMenuBtn;
+        document.querySelector('.pause-content .small').textContent = t.pressEsc;
+        
+        // Оновлення тексту в налаштуваннях
+        document.querySelector('.settings-content h2').textContent = t.settingsTitle;
+        document.querySelector('.settings-item:nth-child(1) label').textContent = t.language;
+        document.querySelector('.settings-item:nth-child(2) label').textContent = t.menuMusic;
+        document.querySelector('.settings-item:nth-child(3) label').textContent = t.gameMusic;
+        document.querySelector('.settings-item:nth-child(4) label').textContent = t.vibration;
+        closeSettingsBtn.textContent = t.doneBtn;
+        
+        consoleInput.placeholder = t.consolePlaceholder;
+        consoleSend.textContent = t.consoleSend;
+        closeConsoleBtn.textContent = t.close;
+        closeCodeModal.textContent = t.close;
+        closeHelpModal.textContent = t.close;
+
+        // Оновлення кнопки бота
+        updateBotButton();
+      }
+
+      /* ------------------ Функції гри ------------------ */
+      function resize(){
+        width=innerWidth; height=innerHeight;
+        canvas.width=width; canvas.height=height;
+        player.size = Math.max(24, Math.min(width,height)*0.045);
+        player.speed = Math.max(3, Math.min(width,height)*0.012);
+        stars=[];
+        for(let i=0;i<150;i++){
+          stars.push({x:Math.random()*width, y:Math.random()*height, r:Math.random()*2+0.5, speed:Math.random()*0.1+0.03});
+        }
+      }
+      addEventListener('resize', resize);
+
+      function showScreen(id){
+        menu.style.display = (id==='menu')?'flex':'none';
+        gameScreen.style.display = (id==='game')?'flex':'none';
+        gameOver.style.display = (id==='over')?'flex':'none';
+        
+        pauseModal.style.display = 'none';
+        isGamePaused = false;
+        
+        if(id==='menu') {
+          updateCounters();
+          playMenuMusic();
+        } else if(id==='game') {
+          playGameMusic();
+        } else if(id==='over') {
+          updateGameOverCounters();
+          stopGameMusic();
+        }
+      }
+
+      function resetGameState(){
+        cancelAnimationFrame(animationId);
+        clearInterval(timeTimer);
+        clearInterval(spawnTimer);
+        clearInterval(bonusTimer);
+        clearInterval(powerupTimer);
+        enemies=[]; particles=[]; bonuses=[];
+        isGameOverAnim=false;
+        isGameActive=false;
+        isGamePaused=false;
+        score = 0;
+        level = 1;
+        enemySpawnRate = 1000;
+        activeEffects = {
+          slowMotion: { active: false, endTime: 0 },
+          shield: { active: false, endTime: 0 },
+          speedBoost: { active: false, endTime: 0 }
+        };
+        pauseModal.style.display = 'none';
+        document.getElementById("repoBtn").style.display = "block";
+      }
+
+      function toggleBot() {
+        botEnabled = !botEnabled;
+        updateBotButton();
+        consoleLog(`Бот ${botEnabled ? 'увімкнений' : 'вимкнений'}`, 'success');
+      }
+
+      function updateBotButton() {
+        const t = translations[currentLanguage];
+        if (botEnabled) {
+          botBtn.textContent = t.botBtnOn;
+          botBtn.classList.add('active');
+        } else {
+          botBtn.textContent = t.botBtnOff;
+          botBtn.classList.remove('active');
+        }
+      }
+
+      function startGame(){
+        resetGameState(); resize();
+        player.x=width/2-player.size/2;
+        player.y=height/2-player.size/2;
+        aiBot.x = Math.random() * width;
+        aiBot.y = Math.random() * height;
+        aiBot.size = player.size * 0.9;
+        aiBot.speed = 0.7 + Math.min(1.5, best * 0.025);
+        timeSec = 0; 
+        score = 0; 
+        level = 1;
+        document.getElementById("repoBtn").style.display = "none";
+
+        best = parseInt(localStorage.getItem('bestTime')) || 0;
+        bestScore = parseInt(localStorage.getItem('bestScore')) || 0;
+
+        timeTimer=setInterval(()=>{
+          timeSec++; 
+          updateCounters();
+          updateDifficulty();
+        },1000);
+        spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
+        bonusTimer=setInterval(()=>spawnBonus(),5000);
+        powerupTimer=setInterval(()=>spawnRandomPowerup(),10000);
+        
+        isGameActive=true;
+        updateCounters();
+        animationId=requestAnimationFrame(loop);
+      }
+
+      function updateDifficulty() {
+        level = Math.floor(timeSec / 30) + 1;
+        enemySpawnRate = Math.max(300, 1000 - level * 100);
+        
+        clearInterval(spawnTimer);
+        spawnTimer = setInterval(() => spawnEnemy(), enemySpawnRate);
+        updateCounters();
+      }
+      
+      function togglePause(){
+        if(!isGameActive || isGameOverAnim) return;
+
+        isGamePaused = !isGamePaused;
+        pauseModal.style.display = isGamePaused ? 'flex' : 'none';
+
+        if(isGamePaused){
+          cancelAnimationFrame(animationId);
+          clearInterval(timeTimer);
+          clearInterval(spawnTimer);
+          clearInterval(bonusTimer);
+          clearInterval(powerupTimer);
+          stopGameMusic();
+        } else {
+          timeTimer=setInterval(()=>{
+            timeSec++; 
+            updateCounters();
+            updateDifficulty();
+          },1000);
+          spawnTimer=setInterval(()=>spawnEnemy(),enemySpawnRate);
+          bonusTimer=setInterval(()=>spawnBonus(),5000);
+          powerupTimer=setInterval(()=>spawnRandomPowerup(),15000);
+          animationId=requestAnimationFrame(loop);
+          playGameMusic();
+        }
+        document.getElementById("repoBtn").style.display = "none";
+      }
+
+      function endGame(){
+        clearInterval(timeTimer);
+        clearInterval(spawnTimer);
+        clearInterval(bonusTimer);
+        clearInterval(powerupTimer);
+        isGameActive=false;
+        isGamePaused = false;
+        pauseModal.style.display = 'none';
+        
+        for(let i=0;i<80;i++){
+          particles.push({
+            x:player.x+player.size/2,
+            y:player.y+player.size/2,
+            vx:(Math.random()-0.5)*4,
+            vy:(Math.random()-0.5)*4,
+            life:60+Math.random()*30,
+            color:i%2?'#0af':'#f44',
+            glow: Math.random()*3+1
+          });
+        }
+        isGameOverAnim=true;
+      }
+
+      function spawnEnemy(){
+        const types = ['normal', 'fast', 'big', 'smart'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        
+        const size = type === 'big' ? 40 : type === 'fast' ? 15 : 25;
+        const speed = type === 'fast' ? 3 : type === 'smart' ? 1 : 1.5 + Math.random();
+        
+        let x, y, vx = 0, vy = 0;
+        const edge = Math.floor(Math.random() * 4);
+        
+        if(edge===0){x=-size;y=Math.random()*height;vx=speed;}
+        if(edge===1){x=width+size;y=Math.random()*height;vx=-speed;}
+        if(edge===2){x=Math.random()*width;y=-size;vy=speed;}
+        if(edge===3){x=Math.random()*width;y=height+size;vy=-speed;}
+        
+        enemies.push({x, y, vx, vy, size, type});
+      }
+
+      function spawnBonus(){
+        if(bonuses.length < 3) {
+          bonuses.push({
+            x: Math.random() * (width - 20),
+            y: Math.random() * (height - 20),
+            size: 15,
+            type: Math.random() > 0.7 ? 'time' : 'points',
+            life: 300
+          });
+        }
+      }
+
+      // Функція для спавну випадкового power-up
+      function spawnRandomPowerup(){
+        const powerups = ['slowMotion', 'shield', 'speedBoost'];
+        const randomPowerup = powerups[Math.floor(Math.random() * powerups.length)];
+        
+        bonuses.push({
+          x: Math.random() * (width - 25),
+          y: Math.random() * (height - 25),
+          size: 20,
+          type: randomPowerup,
+          life: 300,
+          color: randomPowerup === 'slowMotion' ? '#ff00ff' : 
+                 randomPowerup === 'shield' ? '#00ffff' : '#ffff00'
+        });
+      }
+
+      function activatePowerup(type){
+        const now = Date.now();
+        const duration = 5000; // 5 секунд
+        
+        switch(type){
+          case 'slowMotion':
+            activeEffects.slowMotion = { active: true, endTime: now + duration };
+            consoleLog('⚡ Slow Motion активовано! Вороги сповільнені на 5 секунд', 'success');
+            break;
+          case 'shield':
+           const shieldDuration = 20000; // 20 секунд
+           activeEffects.shield = { active: true, endTime: now + shieldDuration };
+           consoleLog('🛡️ Shield активовано! Захист від одного удару на 20 секунд', 'success');
+ 
+  // Просто таймер, без лічильника
+           setTimeout(() => {
+           activeEffects.shield.active = false;
+           consoleLog('🛡️ Shield закінчився!', 'info');
+          }, shieldDuration);
+          break;
+          case 'speedBoost':
+            activeEffects.speedBoost = { active: true, endTime: now + duration };
+            consoleLog('🚀 Speed Boost активовано! Швидкість збільшена на 5 секунд', 'success');
+            break;
+        }
+      }
+
+      function updateEffects(){
+        const now = Date.now();
+        
+        for(let effect in activeEffects){
+          if(activeEffects[effect].active && now > activeEffects[effect].endTime){
+            activeEffects[effect].active = false;
+            consoleLog(`${effect} закінчився`, 'info');
+          }
+        }
+      }
+
+      function updateBodyguardBot(){
+        if(!bodyguardBot.active) return;
+        
+        // Рух по колу навколо гравця
+        bodyguardBot.angle += 0.05;
+        const radius = 80;
+        bodyguardBot.x = player.x + player.size/2 + Math.cos(bodyguardBot.angle) * radius - bodyguardBot.size/2;
+        bodyguardBot.y = player.y + player.size/2 + Math.sin(bodyguardBot.angle) * radius - bodyguardBot.size/2;
+        
+        // Перевірка зіткнень з ворогами
+        for(let i = enemies.length - 1; i >= 0; i--){
+          const e = enemies[i];
+          if(
+            bodyguardBot.x < e.x + e.size &&
+            bodyguardBot.x + bodyguardBot.size > e.x &&
+            bodyguardBot.y < e.y + e.size &&
+            bodyguardBot.y + bodyguardBot.size > e.y
+          ){
+            // 25% шанс знищити ворога
+            if(Math.random() < 0.25){
+              enemies.splice(i, 1);
+              createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ff00');
+              consoleLog('🛡️ Бот-охоронець знищив ворога!', 'success');
+            }
+          }
+        }
+      }
+
+      function createBonusParticles(x, y, color) {
+        for(let i=0;i<20;i++){
+          particles.push({
+            x: x,
+            y: y,
+            vx: (Math.random()-0.5)*3,
+            vy: (Math.random()-0.5)*3,
+            life: 30+Math.random()*20,
+            color: color,
+            glow: Math.random()*2+1
+          });
+        }
+      }
+
+      // Функція для вібрації
+      function vibrate(pattern) {
+        if (vibrationEnabled && navigator.vibrate) {
+          navigator.vibrate(pattern);
+        }
+      }
+
+      function update(){
+        if(isGamePaused) return;
+
+        if(isGameActive){
+          // Оновлення ефектів
+          updateEffects();
+          
+          // Рух гравця з урахуванням speed boost
+          let currentSpeed = player.speed;
+          if(activeEffects.speedBoost.active) currentSpeed *= 1.6;
+          
+          if(keys['ArrowUp']||keys['w']) player.y-=currentSpeed;
+          if(keys['ArrowDown']||keys['s']) player.y+=currentSpeed;
+          if(keys['ArrowLeft']||keys['a']) player.x-=currentSpeed;
+          if(keys['ArrowRight']||keys['d']) player.x+=currentSpeed;
+
+          if(joystick.active){
+            player.x += joystick.dx * currentSpeed;
+            player.y += joystick.dy * currentSpeed;
+          }
+
+          player.x=Math.max(0,Math.min(player.x,width-player.size));
+          player.y=Math.max(0,Math.min(player.y,height-player.size));
+
+          // Рух AI бота
+          if (botEnabled) {
+            const dx = player.x - aiBot.x;
+            const dy = player.y - aiBot.y;
+            const dist = Math.hypot(dx, dy);
+
+            if (dist > 1) {
+              aiBot.x += (dx / dist) * aiBot.speed;
+              aiBot.y += (dy / dist) * aiBot.speed;
+            }
+
+            if (
+              aiBot.x < player.x + player.size &&
+              aiBot.x + aiBot.size > player.x &&
+              aiBot.y < player.y + player.size &&
+              aiBot.y + aiBot.size > player.y
+            ) {
+              if (!godMode) { 
+                // Вібрація при зіткненні з ботом
+                vibrate([100, 50, 100]);
+                endGame(); 
+                return; 
+              }
+            }
+          }
+
+          // Рух ворогів з урахуванням slow motion
+          let enemySpeedMultiplier = 1;
+          if(activeEffects.slowMotion.active) enemySpeedMultiplier = 0.35;
+          
+          for(let e of enemies){ 
+            e.x+=e.vx * enemySpeedMultiplier; 
+            e.y+=e.vy * enemySpeedMultiplier; 
+          }
+          enemies=enemies.filter(e=>e.x>-200&&e.x<width+200&&e.y>-200&&e.y<height+200);
+
+          // Перевірка зіткнень з ворогами
+          for(let e of enemies){
+            if(e.x<player.x+player.size&&e.x+e.size>player.x&&e.y<player.y+player.size&&e.y+e.size>player.y){
+              if(!godMode){ 
+                if(activeEffects.shield.active){
+                  activeEffects.shield.active = false;
+                  // Вібрація при зіткненні з щитом
+                  vibrate([50, 30, 50]);
+                  consoleLog('🛡️ Shield поглинув удар!', 'success');
+                  // Видаляємо ворога при зіткненні з щитом
+                  enemies = enemies.filter(enemy => enemy !== e);
+                  createBonusParticles(e.x + e.size/2, e.y + e.size/2, '#00ffff');
+                } else {
+                  // Вібрація при зіткненні з ворогом
+                  vibrate([200, 100, 200]);
+                  endGame(); 
+                  return; 
+                }
+              }
+            }
+          }
+
+          // Оновлення бота-охоронця
+          updateBodyguardBot();
+
+          // Обробка бонусів
+          bonuses = bonuses.filter(bonus => {
+            bonus.life--;
+            if (bonus.life <= 0) return false;
+            
+            if (player.x < bonus.x + bonus.size && player.x + player.size > bonus.x &&
+                player.y < bonus.y + bonus.size && player.y + player.size > bonus.y) {
+              
+              if (bonus.type === 'points') {
+                score += 100;
+                updateCounters();
+                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#ff0');
+                consoleLog('+100 очок!', 'success');
+              } else if (bonus.type === 'time') {
+                timeSec += 5;
+                updateCounters();
+                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, '#0ff');
+                consoleLog('+5 секунд!', 'success');
+              } else {
+                // Power-up бонуси
+                activatePowerup(bonus.type);
+                createBonusParticles(bonus.x + bonus.size/2, bonus.y + bonus.size/2, bonus.color);
+              }
+              return false;
+            }
+            return true;
+          });
+        }
+
+        for(let p of particles){
+          p.x+=p.vx; p.y+=p.vy; p.life--;
+        }
+        particles=particles.filter(p=>p.life>0);
+
+        for(let s of stars){
+          s.y+=s.speed;
+          if(s.y>height) s.y=0;
+        }
+
+        if(isGameOverAnim && particles.length===0){
+          isGameOverAnim=false;
+          showScreen('over');
+          if(timeSec>best){
+            best=timeSec; 
+            localStorage.setItem('bestTime',best);
+          }
+          if(score>bestScore){
+            bestScore=score;
+            localStorage.setItem('bestScore',bestScore);
+          }
+          updateGameOverCounters();
+          updateCounters();
+
+          aiBot.speed = 0.4 + Math.min(2.5, timeSec * 0.01);
+        }
+      }
+      
+      function draw(){
+        ctx.clearRect(0,0,width,height);
+
+        for(let s of stars){
+          ctx.fillStyle = 'white';
+          ctx.globalAlpha = Math.random()*0.8+0.2;
+          ctx.beginPath();
+          ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+          ctx.fill();
+        }
+        ctx.globalAlpha=1;
+
+        if(!isGameOverAnim){
+          // Колір гравця залежно від ефектів
+          if(activeEffects.shield.active){
+            ctx.fillStyle='#00ffff';
+          } else if(activeEffects.speedBoost.active){
+            ctx.fillStyle='#ffff00';
+          } else {
+            ctx.fillStyle='#0af';
+          }
+          ctx.fillRect(player.x,player.y,player.size,player.size);
+        }
+
+        ctx.fillStyle='#f44';
+        for(let e of enemies) ctx.fillRect(e.x,e.y,e.size,e.size);
+        
+        // Малювання AI бота
+        if (botEnabled) {
+          ctx.fillStyle = '#c00';
+          ctx.fillRect(aiBot.x, aiBot.y, aiBot.size, aiBot.size);
+        }
+        
+        // Малювання бота-охоронця
+        if(bodyguardBot.active){
+          ctx.fillStyle = '#00ff00';
+          ctx.fillRect(bodyguardBot.x, bodyguardBot.y, bodyguardBot.size, bodyguardBot.size);
+        }
+
+        // Малювання бонусів
+        for(let bonus of bonuses){
+          ctx.fillStyle = bonus.color || (bonus.type === 'points' ? '#ff0' : '#0ff');
+          ctx.globalAlpha = Math.max(0.3, bonus.life / 300);
+          ctx.fillRect(bonus.x, bonus.y, bonus.size, bonus.size);
+          ctx.globalAlpha = 1;
+        }
+
+        for(let p of particles){
+          ctx.fillStyle=p.color;
+          ctx.globalAlpha = Math.max(0,p.life/60);
+          ctx.shadowBlur = p.glow||0;
+          ctx.shadowColor = p.color;
+          ctx.fillRect(p.x,p.y,3,3);
+          ctx.globalAlpha=1;
+          ctx.shadowBlur = 0;
+        }
+
+        if(joystick.active){
+          ctx.strokeStyle='rgba(0,255,0,0.3)';
+          ctx.lineWidth=2;
+          ctx.beginPath();
+          ctx.arc(joystick.x,joystick.y,40,0,Math.PI*2);
+          ctx.stroke();
+          ctx.fillStyle='rgba(0,255,0,0.4)';
+          ctx.beginPath();
+          ctx.arc(joystick.x+joystick.dx*30,joystick.y+joystick.dy*30,12,0,Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+      function loop(){ update(); draw(); animationId=requestAnimationFrame(loop); }
+
+      /* ------------------ Функції для музики ------------------ */
+      function playMenuMusic() {
+        if (!menuMusicEnabled) {
+          stopMenuMusic();
+          return;
+        }
+        stopGameMusic();
+        menuMusic.play().catch(e => {
+          if (!musicAutoplayAttempted) {
+            console.log('Автовідтворення музики заблоковано, буде включено при взаємодії');
+            musicAutoplayAttempted = true;
+          }
+        });
+      }
+
+      function playGameMusic() {
+        if (!gameMusicEnabled) {
+          stopGameMusic();
+          return;
+        }
+        stopMenuMusic();
+        gameMusic.play().catch(e => {
+          if (!musicAutoplayAttempted) {
+            console.log('Автовідтворення музики гри заблоковано');
+            musicAutoplayAttempted = true;
+          }
+        });
+      }
+
+      function stopGameMusic() {
+        gameMusic.pause();
+        gameMusic.currentTime = 0;
+      }
+
+      function stopMenuMusic() {
+        menuMusic.pause();
+        menuMusic.currentTime = 0;
+      }
+
+      function stopAllMusic() {
+        stopMenuMusic();
+        stopGameMusic();
+      }
+
+      // Функція для примусового запуску музики при взаємодії користувача
+      function forcePlayMusic() {
+        musicAutoplayAttempted = true;
+        if (menu.style.display === 'flex' && menuMusicEnabled) {
+          playMenuMusic();
+        } else if (gameScreen.style.display === 'flex' && gameMusicEnabled && !isGamePaused) {
+          playGameMusic();
+        }
+      }
+
+      /* ------------------ Функції для налаштувань ------------------ */
+      function openSettings() {
+        settingsModal.style.display = 'flex';
+      }
+
+      function closeSettings() {
+        settingsModal.style.display = 'none';
+        saveSettings();
+      }
+
+      function saveSettings() {
+        currentLanguage = languageSelect.value;
+        menuMusicEnabled = menuMusicToggle.checked;
+        gameMusicEnabled = gameMusicToggle.checked;
+        vibrationEnabled = vibrationToggle.checked;
+        
+        localStorage.setItem('language', currentLanguage);
+        localStorage.setItem('menuMusicEnabled', menuMusicEnabled);
+        localStorage.setItem('gameMusicEnabled', gameMusicEnabled);
+        localStorage.setItem('vibrationEnabled', vibrationEnabled);
+        
+        updateLanguage();
+        
+        // Миттєве вимикання/вмикання музики
+        if (!menuMusicEnabled) {
+          stopMenuMusic();
+        } else if (menu.style.display === 'flex') {
+          playMenuMusic();
+        }
+        
+        if (!gameMusicEnabled) {
+          stopGameMusic();
+        } else if (gameScreen.style.display === 'flex' && !isGamePaused) {
+          playGameMusic();
+        }
+      }
+
+      function loadSettings() {
+        const savedLanguage = localStorage.getItem('language');
+        const savedMenuMusic = localStorage.getItem('menuMusicEnabled');
+        const savedGameMusic = localStorage.getItem('gameMusicEnabled');
+        const savedVibration = localStorage.getItem('vibrationEnabled');
+        
+        if (savedLanguage) {
+          currentLanguage = savedLanguage;
+          languageSelect.value = currentLanguage;
+        }
+        
+        if (savedMenuMusic !== null) {
+          menuMusicEnabled = savedMenuMusic === 'true';
+          menuMusicToggle.checked = menuMusicEnabled;
+        }
+        
+        if (savedGameMusic !== null) {
+          gameMusicEnabled = savedGameMusic === 'true';
+          gameMusicToggle.checked = gameMusicEnabled;
+        }
+        
+        if (savedVibration !== null) {
+          vibrationEnabled = savedVibration === 'true';
+          vibrationToggle.checked = vibrationEnabled;
+        }
+      }
+
+      /* ------------------ Обробники подій ГРИ ------------------ */
+      addEventListener('keydown',e=>{
+        keys[e.key]=true;
+        if(e.key === 'Escape' && isGameActive && !isGameOverAnim){ 
+          togglePause();
+        }
+      });
+      addEventListener('keyup',e=>{keys[e.key]=false;});
+
+      canvas.addEventListener('touchstart',e=>{
+        if(isGamePaused) return; 
+        const t=e.touches[0]; joystick.active=true; joystick.x=t.clientX; joystick.y=t.clientY; joystick.dx=0; joystick.dy=0;
+      });
+      canvas.addEventListener('touchmove',e=>{
+        if(!joystick.active || isGamePaused) return;
+        const t=e.touches[0];
+        const dx=t.clientX-joystick.x;
+        const dy=t.clientY-joystick.y;
+        const len=Math.hypot(dx,dy);
+        const max=40;
+        joystick.dx=(len>max?dx/len:dx/max);
+        joystick.dy=(len>max?dy/len:dy/max);
+      });
+      canvas.addEventListener('touchend',()=>{joystick.active=false;});
+
+      // Обробники подій для примусового запуску музики
+      document.addEventListener('click', forcePlayMusic);
+      document.addEventListener('keydown', forcePlayMusic);
+      document.addEventListener('touchstart', forcePlayMusic);
+
+      // Зупинка музики при зміні вкладки
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          stopAllMusic();
+        } else {
+          // При поверненні на вкладку - відтворюємо музику
+          setTimeout(forcePlayMusic, 100);
+        }
+      });
+
+      // Зупинка музики при закритті вікна
+      window.addEventListener('beforeunload', stopAllMusic);
+
+      /* ------------------ Обробники подій КНОПОК ------------------ */
+      startBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
+      retryBtn.addEventListener('click', () => { showScreen('game'); startGame(); });
+      menuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
+      pauseBtn.addEventListener('click', togglePause);
+      resumeBtn.addEventListener('click', togglePause);
+      pauseMenuBtn.addEventListener('click', () => { resetGameState(); showScreen('menu'); });
+      botBtn.addEventListener('click', toggleBot);
+      settingsBtn.addEventListener('click', openSettings);
+      closeSettingsBtn.addEventListener('click', closeSettings);
+      
+      resetBtn.addEventListener('click', () => { 
+        if(confirm('Ви точно хочете скинути прогрес?')){ 
+          localStorage.removeItem('bestTime'); 
+          localStorage.removeItem('bestScore');
+          best=0; 
+          bestScore=0;
+          updateCounters();
+          alert('Прогрес скинуто!'); 
+        } 
+      });
+
+      const showHelpAlert = () => {
+        const t = translations[currentLanguage];
+        alert(currentLanguage === 'uk' ? 
+`🎮 Інструкція до гри
+
+🕹 На телефоні: використовуйте джойстик для руху синього квадрата.
+⌨️ На ПК: стрілки або W/A/S/D. Esc для Паузи.
+🔥 Мета: протриматися якомога довше.
+⭐ Бонуси: 
+  - Жовті: +100 очок
+  - Блакитні: +5 секунд
+  - Фіолетові: Slow Motion (сповільнює ворогів)
+  - Бірюзові: Shield (захист від одного удару на 20с)
+  - Жовті великі: Speed Boost (збільшує швидкість)
+
+🤖 Бот: червоний квадрат, який переслідує гравця
+
+💡 Power-up'и з'являються кожні 10 секунд!` : 
+`🎮 Game Instructions
+
+🕹 On phone: use joystick to move the blue square.
+⌨️ On PC: arrows or W/A/S/D. Esc for Pause.
+🔥 Goal: survive as long as possible.
+⭐ Bonuses: 
+  - Yellow: +100 points
+  - Blue: +5 seconds
+  - Purple: Slow Motion (slows enemies)
+  - Teal: Shield (protection from one hit for 20s)
+  - Large Yellow: Speed Boost (increases speed)
+
+🤖 Bot: red square that chases the player
+
+💡 Power-ups appear every 10 seconds!`);
+      };
+
+      // ------------------ ЛОГІКА КОНСОЛІ ТА LONG-PRESS ------------------
+      
+      function getFullHTMLCode() {
+          return "<!doctype html>\n" + document.documentElement.outerHTML;
+      }
+
+      function consoleLog(text,type='info'){
+        const time=new Date().toLocaleTimeString();
+        const el=document.createElement('div'); el.style.padding='3px 0';
+        if(type==='error') el.style.color='#ff8080';
+        else if(type==='success') el.style.color='#80ffaa';
+        else el.style.color='#ccc';
+        el.textContent=`[${time}] ${text}`; consoleBody.appendChild(el); consoleBody.scrollTop=consoleBody.scrollHeight;
+      }
+      
+      function closeHelpModalHandler(){
+          helpModal.style.display = 'none';
+          if (helpTimeoutId) {
+              clearTimeout(helpTimeoutId);
+              helpTimeoutId = null;
+          }
+      }
+
+      function showHelpModal(){
+          if (helpTimeoutId) clearTimeout(helpTimeoutId);
+
+          helpModal.style.display = 'block';
+
+          helpTimeoutId = setTimeout(closeHelpModalHandler, 5000); 
+      }
+
+      function closeConsole(){
+          consoleOverlay.style.display='none'; 
+          consoleOverlay.setAttribute('aria-hidden','true');
+      }
+
+      function handleCommand(raw){
+        if(!raw||raw.trim()==='') return;
+        const parts=raw.trim().split(/\s+/), cmd=parts[0].toLowerCase(), args=parts.slice(1);
+        consoleLog('> '+raw,'info');
+        switch(cmd){
+          case '/help':
+            showHelpModal(); 
+            break;
+          case '/code':
+            {
+                const password = prompt('Введіть пароль для доступу до коду:'); 
+                if (password === SECURE_PASSWORD) {
+                    codePre.textContent = getFullHTMLCode(); 
+                    codeModal.style.display = 'flex'; 
+                    consoleLog('Access granted. Code shown.','success'); 
+                } else {
+                    consoleLog('Access denied. Incorrect password.','error');
+                }
+            }
+            break;
+          case '/god':{
+            const mode=args[0]&&args[0].toLowerCase();
+            if(mode==='on'){ godMode=true; consoleLog('God mode ON','success'); }
+            else if(mode==='off'){ godMode=false; consoleLog('God mode OFF','success'); }
+            else consoleLog('Usage: /god on|off','error');
+            break;
+          }
+          case '/score':
+            consoleLog(`Поточний рахунок: ${score}`,'success');
+            break;
+          case '/time':
+            consoleLog(`Час гри: ${timeSec} секунд`,'success');
+            break;
+          case '/clear':
+            consoleBody.innerHTML = '';
+            consoleLog('Консоль очищена','success');
+            break;
+          case '/enemies':
+            consoleLog(`Активних ворогів: ${enemies.length}`,'info');
+            break;
+          case '/bot':{
+            const mode=args[0]&&args[0].toLowerCase();
+            if(mode==='on'){ 
+              botEnabled=true; 
+              updateBotButton();
+              consoleLog('Бот увімкнений','success'); 
+            }
+            else if(mode==='off'){ 
+              botEnabled=false; 
+              updateBotButton();
+              consoleLog('Бот вимкнений','success'); 
+            }
+            else consoleLog('Usage: /bot on|off','error');
+            break;
+          }
+          case '/bb':{
+            const mode=args[0]&&args[0].toLowerCase();
+            if(mode==='on'){ 
+              bodyguardBot.active=true; 
+              consoleLog('Бот-охоронець увімкнений','success'); 
+            }
+            else if(mode==='off'){ 
+              bodyguardBot.active=false; 
+              consoleLog('Бот-охоронець вимкнений','success'); 
+            }
+            else consoleLog('Usage: /bb on|off','error');
+            break;
+          }
+          default: consoleLog('Unknown command. Type /help for assistance.','error');
+        }
+      }
+
+      consoleSend.addEventListener('click', () => { 
+        handleCommand(consoleInput.value); 
+        consoleInput.value=''; 
+        consoleInput.focus(); 
+      });
+      
+      consoleInput.addEventListener('keydown', e => { 
+        if(e.key==='Enter'){ 
+          e.preventDefault(); 
+          handleCommand(consoleInput.value); 
+          consoleInput.value=''; 
+        } 
+      });
+      
+      closeConsoleBtn.addEventListener('click', closeConsole); 
+      consoleBackBtn.addEventListener('click', closeConsole); 
+      closeCodeModal.addEventListener('click', () => { codeModal.style.display='none'; }); 
+      closeHelpModal.addEventListener('click', closeHelpModalHandler); 
+
+      let holdTimer = null;
+      const HOLD_MS = 2000; 
+
+      function openConsole(){
+        consoleOverlay.style.display = 'flex';
+        consoleOverlay.setAttribute('aria-hidden','false');
+        consoleInput.focus();
+        consoleStatus.textContent = 'system active'; 
+      }
+
+      function startHoldTimer(e){
+        e.preventDefault(); 
+        if(holdTimer) clearTimeout(holdTimer);
+        
+        holdTimer = setTimeout(()=>{ 
+          openConsole(); 
+          holdTimer = null; 
+          consoleLog('Консоль відкрито. Введіть /help для довідки.','success'); 
+        }, HOLD_MS);
+      }
+
+      function cancelHoldTimer(e){
+        if(holdTimer){ 
+          clearTimeout(holdTimer);
+          if(e.type === 'mouseup' || e.type === 'touchend') {
+            showHelpAlert(); 
+          }
+          holdTimer = null;
+        }
+      }
+
+      howBtn.addEventListener('mousedown', startHoldTimer);
+      howBtn.addEventListener('mouseup', cancelHoldTimer);
+      howBtn.addEventListener('mouseleave', () => { 
+        if(holdTimer) clearTimeout(holdTimer);
+        holdTimer = null;
+      });
+      howBtn.addEventListener('touchstart', startHoldTimer, {passive:false});
+      howBtn.addEventListener('touchend', cancelHoldTimer);
+      // ------------------ Кнопка тільки у меню ------------------
+      myMenuBtn.addEventListener('click', () => {
+      if(menu.style.display === 'flex'){ // перевіряємо, що зараз показане меню
+      window.open('https://rt.pornhub.com/', '_blank');
+      }
+});
+
+
+      /* ------------------ Ініціалізація ------------------ */
+      consoleStatus.textContent = 'system ready'; 
+      
+      // Завантаження налаштувань
+      loadSettings();
+      
+      // Спроба автоматичного відтворення музики
+      setTimeout(() => {
+        if (menuMusicEnabled) {
+          playMenuMusic();
+        }
+      }, 500);
+      
+      updateBotButton();
+      updateCounters();
+      updateLanguage();
+      showScreen('menu');
+      resize();
+    })();
+  </script>
