@@ -1,0 +1,464 @@
+/* Reset and Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
+    color: #fff;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: none;
+}
+
+#gameContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Canvas */
+#gameCanvas {
+    position: absolute;
+    background-color: #111122;
+    border: 2px solid #2a2a4a;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Menus */
+.menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 20, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.menu.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.menu-content {
+    background: rgba(30, 30, 50, 0.9);
+    padding: 2.5rem;
+    border-radius: 12px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    border: 2px solid #3a3a6a;
+    box-shadow: 0 0 30px rgba(0, 100, 255, 0.3);
+}
+
+.menu h1 {
+    color: #6ee7ff;
+    margin-bottom: 2rem;
+    font-size: 2.2rem;
+    text-shadow: 0 0 10px rgba(110, 231, 255, 0.5);
+}
+
+.menu h1 i {
+    margin-right: 10px;
+}
+
+.menu-button {
+    background: linear-gradient(to right, #3a3a6a, #2a2a4a);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    margin: 0.5rem 0;
+    width: 100%;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid #4a4a8a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.menu-button i {
+    margin-right: 10px;
+}
+
+.menu-button:hover {
+    background: linear-gradient(to right, #4a4a8a, #3a3a6a);
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 100, 255, 0.4);
+}
+
+.menu-button:active {
+    transform: translateY(1px);
+}
+
+/* Settings */
+.setting {
+    display: flex;
+    align-items: center;
+    margin: 1.2rem 0;
+    padding: 0.8rem;
+    background: rgba(20, 20, 40, 0.7);
+    border-radius: 8px;
+}
+
+.setting label {
+    flex: 1;
+    text-align: left;
+    font-size: 1.1rem;
+    color: #aaccff;
+}
+
+.setting label i {
+    margin-right: 8px;
+    width: 20px;
+}
+
+.setting input[type="range"] {
+    flex: 2;
+    height: 8px;
+    margin: 0 1rem;
+    background: #2a2a4a;
+    border-radius: 4px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.setting input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #6ee7ff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.setting select {
+    flex: 2;
+    padding: 0.5rem;
+    background: #2a2a4a;
+    color: white;
+    border: 1px solid #4a4a8a;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.setting span {
+    flex: 0.5;
+    text-align: right;
+    font-weight: bold;
+    color: #6ee7ff;
+}
+
+.buttons-row {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.buttons-row .menu-button {
+    flex: 1;
+}
+
+/* Instructions */
+.instructions {
+    background: rgba(20, 20, 40, 0.7);
+    padding: 1.2rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    text-align: left;
+}
+
+.instructions h3 {
+    color: #ffcc66;
+    margin-bottom: 0.8rem;
+    text-align: center;
+}
+
+.instructions p {
+    margin: 0.5rem 0;
+    color: #ccccff;
+    font-size: 0.95rem;
+}
+
+.instructions i {
+    margin-right: 8px;
+    color: #6ee7ff;
+}
+
+/* Stats */
+.stats {
+    background: rgba(20, 20, 40, 0.7);
+    padding: 1.5rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+}
+
+.stats p {
+    margin: 0.8rem 0;
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.stats i {
+    color: #ffcc66;
+    margin-right: 10px;
+}
+
+.stats span {
+    color: #6ee7ff;
+    font-weight: bold;
+}
+
+.version {
+    margin-top: 1.5rem;
+    color: #8888cc;
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+/* Game UI */
+#gameUI {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 50;
+}
+
+.stats-container {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    pointer-events: none;
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    background: rgba(20, 20, 40, 0.85);
+    padding: 8px 15px;
+    border-radius: 20px;
+    border: 2px solid #3a3a6a;
+    backdrop-filter: blur(5px);
+    pointer-events: auto;
+}
+
+.stat i {
+    color: #ff6666;
+    margin-right: 8px;
+    font-size: 1.2rem;
+}
+
+.health-bar {
+    width: 120px;
+    height: 12px;
+    background: rgba(255, 0, 0, 0.3);
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 0 10px;
+}
+
+.health-bar-fill {
+    height: 100%;
+    background: linear-gradient(to right, #ff3333, #66ff66);
+    border-radius: 6px;
+    width: 100%;
+    transition: width 0.3s;
+}
+
+#healthText {
+    font-weight: bold;
+    color: #fff;
+    min-width: 70px;
+}
+
+/* Controls Container */
+.controls-container {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    pointer-events: none;
+}
+
+/* Mobile Joystick */
+#mobileJoystick {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    pointer-events: auto;
+    display: none;
+}
+
+#joystickBase {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(40, 40, 80, 0.7);
+    border-radius: 50%;
+    border: 2px solid #6ee7ff;
+    box-shadow: 0 0 15px rgba(110, 231, 255, 0.3);
+}
+
+#joystickHandle {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #6ee7ff, #3a9fff);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 2px solid #ffffff;
+    box-shadow: 0 0 10px rgba(110, 231, 255, 0.5);
+}
+
+/* Pause Button */
+.ui-button {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: rgba(40, 40, 80, 0.85);
+    border: 2px solid #6ee7ff;
+    color: #6ee7ff;
+    font-size: 1.5rem;
+    cursor: pointer;
+    pointer-events: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(110, 231, 255, 0.3);
+    transition: all 0.2s;
+}
+
+.ui-button:hover {
+    background: rgba(60, 60, 100, 0.9);
+    transform: scale(1.1);
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .menu-content {
+        padding: 1.5rem;
+        width: 95%;
+    }
+    
+    .menu h1 {
+        font-size: 1.8rem;
+    }
+    
+    .menu-button {
+        padding: 0.8rem 1.5rem;
+        font-size: 1.1rem;
+    }
+    
+    .stats-container {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        gap: 10px;
+    }
+    
+    .stat {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .health-bar {
+        width: 80px;
+    }
+    
+    #healthText {
+        min-width: 60px;
+    }
+    
+    #mobileJoystick {
+        display: block;
+    }
+    
+    .ui-button {
+        width: 50px;
+        height: 50px;
+        font-size: 1.2rem;
+    }
+}
+
+/* Small Screens */
+@media (max-width: 480px) {
+    .menu h1 {
+        font-size: 1.5rem;
+    }
+    
+    .menu-button {
+        padding: 0.7rem 1.2rem;
+        font-size: 1rem;
+    }
+    
+    .setting {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .setting label {
+        margin-bottom: 5px;
+    }
+    
+    .setting input[type="range"] {
+        width: 100%;
+        margin: 10px 0;
+    }
+    
+    .setting select {
+        width: 100%;
+    }
+    
+    .stat {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .health-bar {
+        width: 60px;
+    }
+    
+    #healthText {
+        min-width: 50px;
+    }
+}

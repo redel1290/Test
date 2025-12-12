@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Top-down Survival Shooter</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔫</text></svg>">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <!-- Main Menu -->
+        <div id="mainMenu" class="menu active">
+            <div class="menu-content">
+                <h1><i class="fas fa-crosshairs"></i> SURVIVAL SHOOTER</h1>
+                <button id="startButton" class="menu-button">
+                    <i class="fas fa-play"></i> START GAME
+                </button>
+                <button id="settingsButton" class="menu-button">
+                    <i class="fas fa-cog"></i> SETTINGS
+                </button>
+                <div class="instructions">
+                    <h3><i class="fas fa-info-circle"></i> CONTROLS</h3>
+                    <p><i class="fas fa-laptop"></i> <strong>PC:</strong> WASD to move, Mouse to shoot, ESC to pause</p>
+                    <p><i class="fas fa-mobile-alt"></i> <strong>Mobile:</strong> Virtual joystick to move, Tap to shoot</p>
+                </div>
+                <div class="version">v1.0 | Top-down Survival Shooter</div>
+            </div>
+        </div>
+        
+        <!-- Settings Menu -->
+        <div id="settingsMenu" class="menu">
+            <div class="menu-content">
+                <h1><i class="fas fa-cog"></i> SETTINGS</h1>
+                
+                <div class="setting">
+                    <label for="volume"><i class="fas fa-volume-up"></i> Volume:</label>
+                    <input type="range" id="volume" min="0" max="100" value="70">
+                    <span id="volumeValue">70%</span>
+                </div>
+                
+                <div class="setting">
+                    <label for="graphics"><i class="fas fa-tachometer-alt"></i> Graphics:</label>
+                    <select id="graphics">
+                        <option value="low">Low</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                
+                <div class="setting">
+                    <label for="sensitivity"><i class="fas fa-bullseye"></i> Sensitivity:</label>
+                    <input type="range" id="sensitivity" min="1" max="10" value="5">
+                    <span id="sensitivityValue">5</span>
+                </div>
+                
+                <div class="setting">
+                    <label for="mobileControls"><i class="fas fa-gamepad"></i> Mobile Controls:</label>
+                    <select id="mobileControls">
+                        <option value="joystick" selected>Joystick</option>
+                        <option value="touch">Touch Areas</option>
+                    </select>
+                </div>
+                
+                <div class="buttons-row">
+                    <button id="backButton" class="menu-button">
+                        <i class="fas fa-arrow-left"></i> BACK
+                    </button>
+                    <button id="saveSettings" class="menu-button">
+                        <i class="fas fa-save"></i> SAVE
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pause Menu -->
+        <div id="pauseMenu" class="menu">
+            <div class="menu-content">
+                <h1><i class="fas fa-pause"></i> GAME PAUSED</h1>
+                <button id="resumeButton" class="menu-button">
+                    <i class="fas fa-play"></i> RESUME
+                </button>
+                <button id="restartButton" class="menu-button">
+                    <i class="fas fa-redo"></i> RESTART
+                </button>
+                <button id="mainMenuButton" class="menu-button">
+                    <i class="fas fa-home"></i> MAIN MENU
+                </button>
+            </div>
+        </div>
+        
+        <!-- Game Over Menu -->
+        <div id="gameOverMenu" class="menu">
+            <div class="menu-content">
+                <h1><i class="fas fa-skull-crossbones"></i> GAME OVER</h1>
+                <div class="stats">
+                    <p><i class="fas fa-wave-square"></i> Wave: <span id="finalWave">0</span></p>
+                    <p><i class="fas fa-star"></i> Score: <span id="finalScore">0</span></p>
+                    <p><i class="fas fa-trophy"></i> High Score: <span id="finalHighScore">0</span></p>
+                </div>
+                <button id="playAgainButton" class="menu-button">
+                    <i class="fas fa-redo"></i> PLAY AGAIN
+                </button>
+                <button id="gameOverMainMenu" class="menu-button">
+                    <i class="fas fa-home"></i> MAIN MENU
+                </button>
+            </div>
+        </div>
+        
+        <!-- Game UI -->
+        <div id="gameUI">
+            <div class="stats-container">
+                <div class="stat">
+                    <i class="fas fa-heart"></i>
+                    <div class="health-bar">
+                        <div id="healthBar" class="health-bar-fill"></div>
+                    </div>
+                    <span id="healthText">100/100</span>
+                </div>
+                
+                <div class="stat">
+                    <i class="fas fa-wave-square"></i>
+                    <span>Wave: <span id="waveCounter">1</span></span>
+                </div>
+                
+                <div class="stat">
+                    <i class="fas fa-star"></i>
+                    <span>Score: <span id="scoreCounter">0</span></span>
+                </div>
+                
+                <div class="stat">
+                    <i class="fas fa-trophy"></i>
+                    <span>High Score: <span id="highScoreCounter">0</span></span>
+                </div>
+            </div>
+            
+            <div class="controls-container">
+                <!-- Mobile Controls -->
+                <div id="mobileJoystick" class="mobile-control">
+                    <div id="joystickBase"></div>
+                    <div id="joystickHandle"></div>
+                </div>
+                
+                <!-- Pause Button -->
+                <button id="pauseButton" class="ui-button">
+                    <i class="fas fa-pause"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
