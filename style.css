@@ -1,0 +1,61 @@
+body {
+    margin: 0;
+    background: #222;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+    touch-action: none;
+    font-family: sans-serif;
+    color: white;
+}
+
+canvas {
+    border: 2px solid #fff;
+    background: #333;
+}
+
+#menu, #pausePanel {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+#menu button, #pausePanel button {
+    display: block;
+    margin: 10px auto;
+    padding: 10px 20px;
+    font-size: 18px;
+}
+
+/* Джойстик */
+#joystickContainer {
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 100px;
+    height: 100px;
+    display: none;
+}
+
+#joystickBase {
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    position: absolute;
+}
+
+#joystickStick {
+    width: 50%;
+    height: 50%;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    position: absolute;
+    top: 25%;
+    left: 25%;
+}
+
